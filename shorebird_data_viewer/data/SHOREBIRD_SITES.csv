@@ -1,0 +1,23 @@
+ID,SITE_ABBR,SITE_NAME,North_South_Code,ACCESS_NOTES,Notes,PARENT_SITE_ABBR
+1,BRBLAWSPT,"Brazil Beach, Lawson's Pasture, and Sand Point",N,Send letter with count dates,These sites are normally grouped,BRBLAWSPT
+4,TPT,Tom's Point,N,,,TPT
+5,WCD,Walker Creek Delta,N,Send letter with count dates,,WCD
+6,CGP,Cypress Grove to Nick's Cove,N,,,CGP
+7,MMG,Marshall to Millerton Gulch,S,,,MMG
+8,BIV,Bivalve,S,,,BIV
+9,GIA,Giacomini Wetlands pre-restoration,S,Permission only required if Tanis is not observer,,GW
+10,WPT,Willow Point,S,Send letter with count dates,Sometimes referred to as Shield's Marsh,WPT
+11,INVWHG,Inverness and White Gulch,,,These sites are normally grouped,INVWHG
+14,BRB,Brazil Beach,N,Send letter with count dates,,BRB
+15,LAW,Lawsons Landing,N,Send letter with count dates,Sometimes called Lawsons Pasture,LAW
+16,SPT,Sand Point,N,Send letter with count dates,,SPT
+18,WHG,White Gulch,N,,,WHG
+19,INV,Inverness,S,,,INV
+20,GWE,Giacomini Wetlands East,S,,"As of 12/09/2010 GWE count area was redelineated when Middle Marsh (GWWM, then as of 08/19/2011 GWM) was established and Triangle Marsh (GWT) was redelineated. Counts prior to 12/09/2010 based on larger count area.",GW
+21,GWW,Giacomini Wetlands West,S,,,GW
+22,GWT,Giacomini Wetlands Triangle Marsh,S,,"As of 12/09/2010 GWT count area was redelineated when Middle Marsh (GWWM, then as of 08/19/2011 GWM) was created from Giacomini Wetlands East (GWE). Prior counts based on different sized area.",GW
+23,GWWW,Giacomini Wetlands West--West of creek only,S,no longer used,"As of 12/09/2010 GWWW count area was created, then as of 08/19/2011 renamed as GWW. Counts prior to 12/09/2010 based on same sized count area.",GW
+24,GWWM,Giacomini Wetlands West--East of creek only (middle section/Middle Marsh),S,no longer used,"As of 12/09/2010 GWWM count area was created, then as of 08/19/2011 renamed as GWM, from Giacomini Wetlands East (GWE) and Triangle Marsh (GWT) was redelineated.",GW
+25,GWM,Giacomini Wetlands Middle Marsh (formerly GWWM),S,,"As of 12/09/2010 GWWM count area was created, then as of 08/19/2011 renamed as GWM, from Giacomini Wetlands East (GWE) and Triangle Marsh (GWT) was redelineated.",GW
+26,BRBSPT,used when could not separate data to site (volunteer did not submit separate forms),N,,,BRBSPT
+27,GWMGWT,used when could not separate data to site,S,,,GW
