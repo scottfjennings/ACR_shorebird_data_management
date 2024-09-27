@@ -9,10 +9,12 @@
 library(tidyverse)
 library(lubridate)
 library(RODBC)
+library(birdnames)
 
 
-source("C:/Users/scott.jennings/Documents/Projects/R_general/utility_functions/bird_utility_functions.R")
+source("C:/Users/scott.jennings/OneDrive - Audubon Canyon Ranch/Projects/R_general/utility_functions/bird_utility_functions.R")
 
+custom_bird_list <- readRDS("C:/Users/scott.jennings/OneDrive - Audubon Canyon Ranch/Projects/my_R_general/birdnames_support/data/custom_bird_list")
 # start is sbird_data from sbird_data_prep_2_interpolate...
 
 
