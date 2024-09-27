@@ -1,0 +1,352 @@
+---
+title: "Tomales Bay Winter Shorebird annual summary"
+author: "CGRC Staff - Scott Jennings"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE,
+                      message = FALSE,
+                      error = FALSE,
+                      warning = FALSE)
+```
+
+
+```{r}
+
+# packages, source ----
+library(tidyverse)
+library(lubridate)
+library(MASS)
+library(here)
+
+library(birdnames)
+custom_bird_list <- readRDS("C:/Users/scott.jennings/Documents/Projects/my_R_general/birdnames_support/data/custom_bird_list")
+
+# local copy of this function https://github.com/ateucher/useful_code/blob/master/R/numbers2words.r
+source("C:/Users/scott.jennings/Documents/Projects/my_R_general/utility_functions/numbers2words.R")
+
+options(scipen = 999)
+
+zyear = 2021
+
+delta_year = numbers2words(zyear - 2019)
+
+exclude_date <- as.Date(c("1990-01-04", "1990-02-12", "2010-01-18"))
+```
+
+```{r}
+
+
+core_sites <- c("WCD", "GW")    
+
+sbirds <- readRDS(here("data_files/rds/shorebirds_for_analysis"))%>% 
+  rename(section = North_South_Code)
+
+core_sbirds <- sbirds %>% 
+  filter(site %in% core_sites)
+
+rapt <- readRDS(here("data_files/rds/raptors4analysis")) %>%     
+  mutate(date = as.Date(date)) %>% 
+  rename(section = North_South_Code) %>% 
+  filter(!(date %in% exclude_date)) %>% 
+  filter(grepl("winter", season.year), bird.hunter == 1, count >= 0) %>% 
+  #filter(grepl("winter", season.year), species %in% c("PEFA", "MERL"), count >= 0, season.year != "winter_2019") %>% 
+  group_by(date, section) %>% 
+  summarise(tot.count = sum(count)) %>% 
+  ungroup() %>% 
+  mutate(year = ifelse(month(date) < 6, year(date)-1, year(date))) %>% 
+  group_by(year, section) %>% 
+  summarise(mean.bird.hunters = mean(tot.count),
+            sd.bird.hunters = sd(tot.count)) %>% 
+  ungroup() 
+
+# rain from C:/Users/scott.jennings/Documents/Projects/general_data_sources/Rainfall/get_PRISM.R
+rain <- read.csv("C:/Users/scott.jennings/Documents/Projects/general_data_sources/Rainfall/derived_data/tomales_watershed_mean_month_rain.csv") %>% 
+  mutate(year = ifelse(month < 7, year - 1, year)) %>% 
+  filter(month <= 2 | month > 7) %>% 
+  group_by(year) %>% 
+  summarise(seas.rain.mm = sum(mean.rain),
+            seas.rain.mm = round(seas.rain.mm)) %>% 
+  filter(year > 1988)
+
+
+# annual estimate each species
+analysis_table <- sbirds %>% 
+  group_by(season.year, date, section, alpha.code) %>% 
+  summarize(total.sbirds = sum(count)) %>% 
+  ungroup() %>% 
+  group_by(season.year, section, alpha.code) %>% 
+  summarise(mean.total.sbirds = floor(mean(total.sbirds)),
+            sd.total.sbirds = sd(total.sbirds),
+            max.total.sbirds = max(total.sbirds),
+            p75.total.sbirds = quantile(total.sbirds, probs = c(0.75)),
+            num.surveys = n()) %>% 
+  ungroup() %>%
+  bind_rows(., sbirds %>% 
+              group_by(season.year, date, section) %>% 
+              summarize(total.sbirds = sum(count)) %>% 
+              ungroup() %>% 
+              group_by(season.year, section) %>% 
+              summarise(mean.total.sbirds = floor(mean(total.sbirds)),
+                        sd.total.sbirds = sd(total.sbirds),
+                        max.total.sbirds = max(total.sbirds),
+                        p75.total.sbirds = quantile(total.sbirds, probs = c(0.75)),
+                        num.surveys = n()) %>%
+              ungroup() %>% 
+              mutate(alpha.code = "All")) %>% 
+  separate(season.year, c("season", "year"), remove = F) %>% 
+  mutate(year = as.numeric(year),
+         giac.dummy = ifelse(year < 2009, 0,
+                             ifelse(section == "S", 1, 0))) %>% 
+  full_join(., rain) %>% 
+  full_join(rapt) %>% 
+  filter(year < 2022)
+
+
+mean_preds <- analysis_table %>% 
+  group_by(section) %>% 
+  summarise(seas.rain.mm = mean(seas.rain.mm, na.rm = TRUE),
+            mean.bird.hunters = mean(mean.bird.hunters, na.rm = TRUE))
+
+znewdat <- analysis_table %>% 
+  distinct(year, section, giac.dummy) %>% 
+  full_join(mean_preds)
+
+```
+
+```{r}
+
+zmaxit = 100
+
+fit_big_mod <- function(zspp) {
+  sbirds_winter <- analysis_table %>% 
+    filter(season == "winter", alpha.code == zspp)
+  
+big_mod <- glm.nb(floor(p75.total.sbirds) ~ poly(year, 2) * section + giac.dummy + seas.rain.mm + mean.bird.hunters, data = sbirds_winter, maxit = zmaxit)
+
+}
+
+# ---
+sbird_predicter_glm <- function(zmod, newdat){
+ilink <- family(zmod)$linkinv
+ all_best_pred = predict(zmod, newdat, se.fit=TRUE, type='link') %>% 
+  data.frame() %>% 
+  cbind(newdat) %>% 
+  ungroup() %>% 
+  mutate(predicted = ilink(fit),
+         lci = ilink(fit - (1.96 * se.fit)),
+         uci = ilink(fit + (1.96 * se.fit)))
+  }
+
+
+# ---
+
+sbird_mod_plotter <- function(zpred) {
+if(zpred$alpha.code[1] == "All") {
+  sp_name = "All shorebirds"
+} else {
+sp_name <- translate_bird_names(zpred$alpha.code[1], "alpha.code", "common.name")
+}
+  
+zpred <- zpred %>% 
+  left_join(., analysis_table %>% filter(season == "winter") %>% dplyr::select(alpha.code, year, section, p75.total.sbirds)) %>% 
+  rename(Year = year, Section = section) %>% 
+  mutate(Section = ifelse(Section == "N", "North", "South"))
+
+
+ymax = ifelse(max(zpred$p75.total.sbirds) > max(zpred$uci), max(zpred$p75.total.sbirds), max(zpred$uci))
+
+zplot <- zpred %>% 
+  ggplot(aes(x = Year, y = predicted, linetype  = Section)) +
+  geom_line() +
+  geom_ribbon(aes(ymin=lci,ymax=uci),alpha=0.3) +
+    geom_point(aes(x = Year, y = p75.total.sbirds, shape = Section))+
+  scale_shape_manual(values = c(16, 2))  +
+  theme_classic() +
+  theme(legend.title=element_blank(),
+        legend.position=c(0.9, 0.9),
+        legend.justification = c(1,1),
+        panel.background = element_blank()) +
+  scale_x_continuous(limits = c(1989, zyear), breaks = c(1990, 2000, 2010, 2020)) +
+  xlab("Year") +
+  ylab("Estimated mean abundance") +
+  ggtitle(sp_name) +
+  ylim(0, ymax)
+
+zplot
+
+}
+
+
+fit_plot_mod <- function(zspp) {
+  
+ spp_mod <- fit_big_mod(zspp)
+
+spp_pred <- sbird_predicter_glm(spp_mod, znewdat) %>% 
+  mutate(alpha.code = zspp)
+
+
+
+ztext <- spp_pred %>% 
+  filter(year == zyear) %>% 
+  mutate(predicted = round(predicted, 0),
+         section = ifelse(section == "N", "North", "South"),
+         sect.text = paste("an estimated", predicted, "birds in the", section, "section")) %>% 
+  summarise(out.text = paste(sect.text, collapse = " and ")) %>% 
+  mutate(out.spp = ifelse(zspp == "All", "all shorebirds combined", translate_bird_names(zspp, "alpha.code", "common.name")),
+         out.text = paste("For ", out.spp, " in ", zyear, ", there were ", out.text, ".", sep = "")) %>% 
+  dplyr::select(out.text)
+
+sbird_out <- list(zplot = sbird_mod_plotter(spp_pred),
+                  ztext = ztext,
+                  all.pred = dplyr::select(spp_pred, year, section, predicted, lci, uci, alpha.code))
+}
+
+```
+
+```{r}
+
+zspp_list <- c("All", "DUNL", "WESA", "MAGO", "LESA", "SAND", "WILL", "DOSP", "BBPL", "BLTU", "YELL", "SEPL", "KILL", "SPSA")
+
+spp_out <- map(zspp_list, fit_plot_mod)
+
+names(spp_out) <- zspp_list
+
+get_preds <- function(zspp_out) {
+  zpred <- zspp_out[[3]]
+}
+
+all_preds <- map_df(spp_out, get_preds)%>% 
+  group_by(year, alpha.code) %>% 
+  summarise(tot.predicted = floor(sum(predicted))) %>% 
+  ungroup() %>% 
+  filter(year %in% c(1989, 2019, zyear)) %>% 
+  mutate(year = ifelse(year == zyear, "zyear", year),
+         year = paste("yr.", year, sep = "")) %>% 
+  pivot_wider(id_cols = alpha.code, names_from = year, values_from = tot.predicted) %>% 
+  mutate(yr.19.change = ((yr.1989 - yr.2019)/yr.1989) * 100,
+         zyr.change = ((yr.1989 - yr.zyear)/yr.1989) * 100)
+
+
+```
+
+
+Monitoring species populations provides critical information to identify imperiled species, evaluate current or past management, prioritize new conservation measures.  
+
+Each winter since 1989, Audubon Canyon Ranch biologists and volunteers have monitored the number of shorebirds at Tomales Bay. We survey all shorebird habitat on the bay up to 6 times each winter. From these data we can see how shorebird populations have changed in that time, and the results are sobering. In early 2021 we published a paper titled "Declining wintering shorebird populations at a temperate estuary in California: A 30 year perspective" (full citation and link below), in which we reported an overall 66% decline in Tomales Bay shorebirds. Two of the most abundant species, Western Sandpiper and Dunlin, declined by 94% and 77%, respectively.
+
+Here, we provide an update to the results of that paper, including the subsequent `r delta_year` years of data. As in the published paper, we consider All species combined and the 13 most abundant species individually. We used models to estimate long term trends in shorebird abundance while accounting for shorter term fluctuations due to rainfall, predatory raptor abundance, and a large habitat restoration project completed in 2009.
+
+Warnock, N., Jennings, S., Kelly, J.P., Condeso, T.E. and Lumpkin, D., 2021. Declining wintering shorebird populations at a temperate estuary in California: A 30-year perspective. The Condor, 123(1), p.duaa060. https://academic.oup.com/condor/article/123/1/duaa060/6132586
+
+
+`r spp_out$All$ztext`
+
+```{r}
+spp_out$All$zplot
+
+```
+
+
+
+`r spp_out$DUNL$ztext`
+
+```{r}
+spp_out$DUNL$zplot
+```
+
+
+
+`r spp_out$WESA$ztext`
+
+```{r}
+spp_out$WESA$zplot
+```
+
+
+`r spp_out$MAGO$ztext`
+
+```{r}
+spp_out$MAGO$zplot
+```
+
+
+`r spp_out$LESA$ztext`
+
+```{r}
+spp_out$LESA$zplot
+```
+
+
+`r spp_out$SAND$ztext`
+
+```{r}
+spp_out$SAND$zplot
+```
+
+`r spp_out$WILL$ztext`
+
+```{r}
+spp_out$WILL$zplot
+```
+
+
+
+`r spp_out$DOSP$ztext`
+
+```{r}
+spp_out$DOSP$zplot
+```
+
+
+
+`r spp_out$BBPL$ztext`
+
+```{r}
+spp_out$BBPL$zplot
+```
+
+
+`r spp_out$BLTU$ztext`
+
+```{r}
+spp_out$BLTU$zplot
+```
+
+
+
+`r spp_out$YELL$ztext`
+
+```{r}
+spp_out$YELL$zplot
+```
+
+
+`r spp_out$SEPL$ztext`
+
+```{r}
+spp_out$SEPL$zplot
+```
+
+
+`r spp_out$KILL$ztext`
+
+```{r}
+spp_out$KILL$zplot
+```
+
+
+
+`r spp_out$SPSA$ztext`
+
+```{r}
+spp_out$SPSA$zplot
+```
+
+
+
+
