@@ -1,0 +1,226 @@
+---
+title: "Tomales Bay shorebird trends"
+output: html_document
+
+---
+ <font size="5"> 
+*by Scott Jennings, Avian Ecologist, Cypress Grove Research Center*
+
+
+```{r echo = FALSE, message = FALSE, error = FALSE, warning = FALSE}
+
+library(tidyverse)
+library(plotly)
+library(htmlwidgets)
+library(shiny)
+
+source("C:/Users/scott.jennings/Documents/Projects/R_general/utility_functions/bird_utility_functions.R")
+source("C:/Users/scott.jennings/Documents/Projects/R_general/utility_functions/analysis_utility_functions.R")
+source("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/code_shorebird_trend_analysis/analysis_sbirds_0_sbird_util_functions.R")
+source("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/code_shorebird_trend_analysis/popular_comm_2_plots.R")
+options(scipen = 999)
+
+
+ggplotly_bump_axislabels <- function(gg, bump.xaxis = -0.05, bump.yaxis = -0.03){
+  # The 1 and 2 goes into the list that contains the options for the x and y axis labels respectively
+  gg[['x']][['layout']][['annotations']][[1]][['y']] <- bump.xaxis # x axis
+  gg[['x']][['layout']][['annotations']][[2]][['x']] <- bump.yaxis # y axis
+  gg
+}
+
+
+```
+
+<br>
+
+ <font size="5"> 
+<b> *ACR researchers recently published a paper in Condor, Ornithological Applications, reporting trends of Tomales Bay shorebird populations. Overall, most species of shorebirds have declined substantially on Tomales Bay in the last 30 years.* </b>
+<br>
+<br>
+<b>Tomales Bay: An important wetland for wintering shorebirds</b>
+<br>
+Each year tens of thousands of shorebirds breed in the high latitudes during the summer then migrate to warmer latitudes for the winter. Tomales Bay, located within the Point Reyes National Seashore north of San Francisco Bay, has been recognized as an important wetland for these wintering shorebirds.   
+<br>
+Across North America bird species—including shorebirds—are declining but it is often unclear how local factors across species' ranges contribute to declines. Continent-wide trends are likely the result of multiple forces acting at multiple scales across space and time; however, to determine the true causes of continent-wide trends we need to understand the relative effects of multiple local factors.  
+<br>
+For this paper, we set out to learn how abundance of wintering shorebirds on Tomales Bay has changed and whether these changes could be attributed to some local habitat and environmental changes.  
+
+
+
+<b>The take-away: </b>
+<br>
+Overall, most species of shorebirds have declined substantially on Tomales Bay in the last 30 years, from almost 16,000 birds in 1989 to only about 5,300 today (66% decline). In terms of overall numbers, the biggest losers were Dunlin and Western Sandpipers. To reverse these trends, conservationists and managers need to coordinate habitat restoration and other efforts throughout the ranges of these migratory species.  
+
+
+</font> 
+```{r echo = FALSE, message = FALSE, error = FALSE, warning = FALSE, out.height = "600px", out.width="100%"}
+
+#all_others <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/percent_change") %>% 
+#  make_all_others()
+#yell <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/percent_change") %>% 
+#  make_yell()
+
+make_everyone_plotly(all_others, yell) %>% 
+  layout(margin = list(t = 100, b = 50, l = 100, r = 100))
+
+
+
+```
+
+<font size="3"> 
+*Note, hover over the points in the plot to explore how abundance of each species has changed. The estimated abundance can be thought of as the mean abundance while accounting for multiple local factors (see below). There is some uncertainty in this estimate, so the 95% CI ([confidence interval](https://en.wikipedia.org/wiki/Confidence_interval)) is included to represent the range within which the true value was with 95% confidence.*  
+
+<br>
+<font size="5"> 
+<b>Our findings at a glance:</b>
+
+
+- Using 30 years of shorebird count data from Tomales Bay (thank you citizen science volunteers!!), we found substantial declines in abundance of most shorebird species. 
+- Some of the changes in shorebird abundance could be explained by local factors (rainfall, raptor abundance, and wetland restoration)---but even when accounting for those effects, we still detected large declines in most species. 
+- This suggests that the trends we detected are the result of multiple factors operating across the ranges of these migratory species.
+- Reversing these trends will require coordinated efforts across the breeding, migration and non-breeding ranges of shorebirds.
+
+<br>
+</font> 
+
+<font size="5">
+<b>A closer look at each species:</b>
+<br>
+We found declines in abundance of *all species combined* and most species we analyzed individually. Our analysis showed that population changes didn't occur steadily, and some species showed different trends at different times through the study.  
+<br>
+In the figures below you can click each species name to hide/show those data on the graph, and hover over the points/lines at different parts of the graph to show additional detail about measured and modeled shorebird abundance, and measured rainfall and raptor abundance.  
+
+
+
+
+
+```{r echo = FALSE, warning = FALSE, out.width="100%"}
+readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/dat_est_lean") %>% 
+  pop_plotter_abund_group(3, include.points = T) %>% 
+  pop_plotlyer() %>% 
+  layout(#title = "Mean abundance >1000",
+         margin = list(r = 100, l = 100)) %>%
+  add_annotations(text="Mean abundance >1000", xref="paper", yref="paper", size = 12,
+                  x=0, xanchor="left",
+                  y=1.05, yanchor="top",    # Same y as legend below
+                  legendtitle=FALSE, showarrow=FALSE, align = "left") 
+
+readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/dat_est_lean") %>% 
+  pop_plotter_abund_group(2, include.points = T) %>% 
+  pop_plotlyer() %>% 
+  layout(#title = "Mean abundance 100-1000",
+         margin = list(r = 100, l = 100)) %>%
+  add_annotations(text="Mean abundance 100-1000", xref="paper", yref="paper", size = 12,
+                  x=0, xanchor="left",
+                  y=1.05, yanchor="top",    # Same y as legend below
+                  legendtitle=FALSE, showarrow=FALSE, align = "left") 
+
+readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/dat_est_lean") %>% 
+  pop_plotter_abund_group(1, include.points = T) %>% 
+  pop_plotlyer() %>% 
+  layout(#title = "Mean abundance <100",
+         margin = list(r = 100, l = 100)) %>%
+  add_annotations(text="Mean abundance <100", xref="paper", yref="paper", size = 12,
+                  x=0, xanchor="left",
+                  y=1.05, yanchor="top",    # Same y as legend below
+                  legendtitle=FALSE, showarrow=FALSE, align = "left") 
+
+ 
+```
+
+  <font size="5"> 
+<b>Digging deeper: do local factors contribute to declines?</b>
+<br>
+
+For this paper we evaluated how well three local variables could explain variation in shorebird abundance:
+
+- cumulative winter rainfall,  
+- the abundance of raptors which may hunt shorebirds, and  
+- an increase in available habitat resulting from the 2008 restoration of the 550-acre Giacamini Wetlands at the south end of Tomales Bay.  
+
+Our analysis method allowed us to first ask whether each of these variables were important in helping to explain changes in shorebirds abundance (either up or down), and if so to then determine *how* shorebird abundance was related to that variable.
+
+<font size="5"> 
+<br>
+<b>Not too much rain</b>
+<br> 
+Rainfall helped explain changes in abundance for 8 species and all species combined.   
+<br> 
+As other studies have shown, we found that abundance of most shorebird species on Tomales Bay was lower in years with more rain. This likely happens because heavier winter rain can suppress shorebirds’ invertebrate prey in tidal mudflats.  
+<br>
+
+</font> 
+```{r echo = FALSE, warning = FALSE, out.width="100%"}
+
+
+
+rain_plotly <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/rain_preds") %>% 
+  make_rain_effect_plotly()%>% 
+  layout(title = "Effect of cummulative rainfall on shorebird abundance",
+         margin = list(l = 50, t = 100)) %>%
+  ggplotly_bump_axislabels(bump.yaxis = -0.06)
+
+#rain_plotly[['x']][['layout']][['annotations']][[3]][['y']] <- 1.1
+#rain_plotly[['x']][['layout']][['annotations']][[4]][['y']] <- 1.1
+#rain_plotly[['x']][['layout']][['annotations']][[5]][['y']] <- 1.1
+
+rain_plotly
+```
+
+ <font size="5"> 
+<br>
+<b>Raptor abundance</b>
+<br> 
+Several raptor species hunt shorebirds, so we expected that we would have counted fewer shorebirds when we counted more raptors.   
+<br>
+However, raptor abundance helped explain shorebird abundance for only three shorebird species, Killdeer, Sanderling and Willet. Furthermore, Willet was the only species that matched our prediction of *lower* shorebird abundance at higher raptor abundance. These results suggest that, overall, the threat of raptor predation does not strongly influence shorebird use of Tomales Bay.  
+
+</font> 
+
+```{r echo = FALSE, warning = FALSE, message=FALSE, out.width="100%"}
+
+
+readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/2019_20_shorebird_trend_analysis/popular_communication/pop_comm_data/rapt_preds") %>% 
+  rapt_effect_bay_plotly() %>% 
+  layout(title = "Effect of raptor abundance on shorebird abundance",
+         margin = list(l = 50, t = 100)) %>% 
+  ggplotly_bump_axislabels()
+
+#zzz[['x']][['layout']][['annotations']][[1]][['y']] <- -0.1
+
+
+```
+
+
+<b>The effect of isolated wetland restoration:</b>
+<br>
+The sharp increase in abundance for some species between 2008 and 2009 in some of the plots above reflects when the levies were breached as part of the restoration to return tidal flow to Giacomini Wetland at the southern end of the bay.  
+<br>
+Although this restoration had a positive impact on shorebird abundance, this local increase in habitat was apparently not sufficient to reverse negative trends.  
+
+ <font size="5"> 
+ 
+<b> What's next?</b>
+
+We found that increasing available habitat can lead to increased shorebird abundance at local scales. But isolated, relatively small habitat projects in single locations might not be enough to reverse overall negative population trends.  
+<br>
+This conclusion highlights the importance of regional and continent-wide collaboration on conservation efforts to improve habitat availability and quality across the range of these migratory species.  
+<br>
+Additional local variables may further explain variation in shorebird abundance. We are working to understand how shellfish aquaculture and other human activities may influence shorebird use of Tomales Bay.  
+
+
+<b> Read more:</b>
+<br>
+You can read the abstract for the published paper [here](https://egret.org/sites/default/files/declining_wintering_shorebird_populations.pdf).  
+
+More information on our Tomales Bay [shorebird](https://egret.org/shorebird_survey) and [waterbird](https://egret.org/waterbird_survey)  monitoring projects.
+
+And check out [the 2015 issue of *The Ardeid*](https://egret.org/system/files/publications/the_ardeid_2015.pdf) for more details on the effect of the Giacomini restoration.  
+
+
+</font>
+<br>
+<br>
+<br>
+<br>
+<br>
