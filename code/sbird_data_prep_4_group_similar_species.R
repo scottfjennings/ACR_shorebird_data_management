@@ -33,7 +33,7 @@ make_df4lumping <- function(sbird_groupies) {
 
 lumpies <- custom_bird_list %>% 
   filter(alpha.code %in% sbird_groupies) %>% 
-  select(alpha.code, group.spp) 
+  dplyr::select(alpha.code, group.spp) 
 
 num_group_spp <- lumpies %>% 
   mutate(num.group.spp = str_count(group.spp, ',') + 1) %>% 
@@ -42,7 +42,7 @@ num_group_spp <- lumpies %>%
 df4lumping <- lumpies %>% 
   separate(group.spp, into = paste("spp", 1:num_group_spp$max.num.spp[1], sep = "_")) %>% 
   pivot_longer(cols = contains("spp")) %>% 
-  select(long.lumpies = alpha.code, alpha.code = value) %>% 
+  dplyr::select(long.lumpies = alpha.code, alpha.code = value) %>% 
   filter(!is.na(alpha.code))%>% 
   mutate(long.lumpies = as.character(long.lumpies))
 
@@ -59,7 +59,7 @@ allocated_sbirds2 <- allocated_sbirds %>%
   ungroup()
 
 allocated_sbirds3 <- allocated_sbirds2 %>% 
-  select(season.year, date, site, alpha.code = long.lumpies2, count = allocated.count2, North_South_Code) %>% 
+  dplyr::select(season.year, date, site, alpha.code = long.lumpies2, count = allocated.count2, North_South_Code) %>% 
   distinct()
 }
 
@@ -73,6 +73,7 @@ shorebirds_for_analysis <- allocated_sbirds %>%
   tally_lumped_spp_counts()
 
 # check which species were in allocated_sbirds but aren't in shorebirds_for_analysis
+# this should be the constituente species in the groups listed in sbird_groupies
 anti_join(allocated_sbirds, shorebirds_for_analysis, by = c("date", "site", "alpha.code")) %>% 
   group_by(alpha.code) %>% 
   summarise(n())

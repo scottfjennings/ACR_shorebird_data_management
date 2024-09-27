@@ -29,7 +29,7 @@ make_sbird_lumpies <- function(sbird_groupies = c("LWSA", "PEEP")) {
 # warning about missing pieces is expected and OK
   lumpies <- custom_bird_list %>% 
   filter(alpha.code %in% sbird_groupies) %>% 
-  select(alpha.code, group.spp) 
+  dplyr::select(alpha.code, group.spp) 
 
 num_group_spp <- lumpies %>% 
   mutate(num.group.spp = str_count(group.spp, ',') + 1) %>% 
@@ -38,7 +38,7 @@ num_group_spp <- lumpies %>%
 lumpies_long <- lumpies %>% 
   separate(group.spp, into = paste("spp", 1:num_group_spp$max.num.spp[1], sep = "_")) %>% 
   pivot_longer(cols = contains("spp")) %>% 
-  select(long.lumpies = alpha.code, alpha.code = value) %>% 
+  dplyr::select(long.lumpies = alpha.code, alpha.code = value) %>% 
   filter(!is.na(alpha.code))%>% 
   mutate(long.lumpies = as.character(long.lumpies))
 }
@@ -58,14 +58,14 @@ spp_group <- make_sbird_lumpies() %>%
 # all unIDed birds for the lumpy group
 lumpies <- sbirds %>% 
   filter(alpha.code == zlump) %>% 
-  select(date, site, lumpy.count = count)
+  dplyr::select(date, site, lumpy.count = count)
 
 # all possitively IDed birds for species in the lumpy group
 alpha.code <- sbirds %>% 
   filter(alpha.code %in% spp_group$alpha.code)
 
 un_lumpies <- full_join(alpha.code, lumpies, by = c("date", "site")) %>% 
-  select(North_South_Code, site, date, alpha.code, count, lumpy.count)
+  dplyr::select(North_South_Code, site, date, alpha.code, count, lumpy.count)
 
 # total possitively IDed birds at each site X date
 un_lumpies <- un_lumpies %>% 
@@ -100,7 +100,7 @@ un_lumpies <- un_lumpies %>%
 
 un_lumpies_ratios <- un_lumpies %>% 
   #filter(lumpy.count > 0) %>% 
-  select(North_South_Code, site, date, alpha.code, count, lumpy.count, contains("sum.known"), contains("ratio")) %>% 
+  dplyr::select(North_South_Code, site, date, alpha.code, count, lumpy.count, contains("sum.known"), contains("ratio")) %>% 
   arrange(North_South_Code, date, site) %>% 
   mutate(unlump.ratio = NA,
          which.ratio = NA) %>% 
@@ -122,7 +122,7 @@ un_lumped <- un_lumpies_ratios %>%
          unlumped.count = ifelse(is.na(unlumped.count), 0, unlumped.count),
          lumpy.to.sp = paste(zlump, ".to.", alpha.code, sep = ""),
          which.ratio = ifelse(is.na(which.ratio), "no.split", which.ratio)) %>% 
-  select(North_South_Code, site, date, alpha.code, count, lumpy.count, lumpy.to.sp, unlumped.count, which.ratio, unlump.ratio, everything())
+  dplyr::select(North_South_Code, site, date, alpha.code, count, lumpy.count, lumpy.to.sp, unlumped.count, which.ratio, unlump.ratio, everything())
 
 }
 
@@ -131,11 +131,11 @@ add_allocated_sbirds <- function() {
 
 unlumped_all_slim <- sbird_unlumped_all %>%
   filter(lumpy.count > 0) %>% 
-  select(date, site, alpha.code, count = unlumped.count, lumpy.to.sp)
+  dplyr::select(date, site, alpha.code, count = unlumped.count, lumpy.to.sp)
 
 all_sbirds <- sbirds %>%
   filter(!alpha.code %in% groups_to_split) %>% 
-  select(-North_South_Code) %>% 
+  dplyr::select(-North_South_Code) %>% 
   mutate(lumpy.to.sp = NA) %>% 
   rbind(., unlumped_all_slim) %>% 
   arrange(site, date, alpha.code)
@@ -179,11 +179,13 @@ splitting_summary <- sbird_unlumped_all %>%
 allocated_sbirds <- add_allocated_sbirds()
 # add back in N/S field
 allocated_sbirds <- allocated_sbirds %>% 
-  left_join(., select(sbirds, site, North_South_Code) %>% distinct())
+  left_join(., dplyr::select(sbirds, site, North_South_Code) %>% distinct())
 
 
 # allocated_sbirds has a single row for each species X site X date, and represents the data from birds IDed to species in the field and the birds IDed as PEEP or LWSA that have been allocated to DUNL, WESA, LESA, SAND based on the ratios of those possitively IDed species.
 # the field allocated.count contains these total bird numbers (possitively ID and allocated)
 
 saveRDS(allocated_sbirds, here("data_files/rds/sbirds_peep_lwsa_split"))
-rm(sbird_unlumped_all, sbirds, sbirds_with_interpolated)
+rm(sbird_unlumped_all, sbirds
+   #, sbirds_with_interpolated
+   )
