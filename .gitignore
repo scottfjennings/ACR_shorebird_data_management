@@ -28,3 +28,4 @@ vignettes/*.pdf
 .Renviron
 figures_output
 data_files
+documents
