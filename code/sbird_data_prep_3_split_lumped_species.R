@@ -5,11 +5,7 @@ library(RODBC)
 library(here)
 
 library(birdnames)
-custom_bird_list <- readRDS("C:/Users/scott.jennings/Documents/Projects/my_R_general/birdnames_support/data/custom_bird_list")
-
-# start with sbirds_with_interpolated from sbird_data_prep_2_interpolate_missing_surveys.R
-# or sbirds_date_parentsite from C:\Users\scott.jennings\Documents\Projects\shorebirds\shorebird_data_work\data_files\rds
-#sbirds_with_interpolated <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/shorebird_data_work/data_files/rds/sbirds_with_interpolated")
+custom_bird_list <- readRDS("C:/Users/scott.jennings/OneDrive - Audubon Canyon Ranch/Projects/my_R_general/birdnames_support/data/custom_bird_list")
 
 
 # define functions ----
@@ -23,14 +19,23 @@ sbirds_group_parentsite <- function(sbirds) {
     rename(site = PARENT_SITE_ABBR, count = psite_count)
 }
 
-# create grouping object                  
-# this is called inside sbird_unlumper
+#' make_sbird_lumpies
+#'
+#' this takes the species groups identified in sbird_groupies and extracts the constituent species in each group.
+#' this is called inside sbird_unlumper
+#'
+#' @param sbird_groupies default is c("LWSA", "PEEP") but could also do any of c("TURN", "DOSP", "YELL", "PHAL")
+#'
+#' @return data frame with 2 columns: long.lumpies with the 4 letter codes of the species groups, and alpha.code with the 4 letter codes of the individual species
+#'
+#' @examples
 make_sbird_lumpies <- function(sbird_groupies = c("LWSA", "PEEP")) {
 # warning about missing pieces is expected and OK
   lumpies <- custom_bird_list %>% 
   filter(alpha.code %in% sbird_groupies) %>% 
   dplyr::select(alpha.code, group.spp) 
 
+  # need number of species in each group to know how many pieces to split group.spp into in the next step
 num_group_spp <- lumpies %>% 
   mutate(num.group.spp = str_count(group.spp, ',') + 1) %>% 
   summarise(max.num.spp = max(num.group.spp))
@@ -41,19 +46,29 @@ lumpies_long <- lumpies %>%
   dplyr::select(long.lumpies = alpha.code, alpha.code = value) %>% 
   filter(!is.na(alpha.code))%>% 
   mutate(long.lumpies = as.character(long.lumpies))
+
+return(lumpies_long)
 }
 #sbird_lumpies <- make_sbird_lumpies()
 
 # actual allocation 
-# this does the actual calculation of ratios, determination of appropriate ratio, and allocation of undifferentiated birds to each species
-# this works on one lumped group at a time (e.g. PEEP), which is input as zlump
-# can then lump over multiple groups_to_split
-
+# 
+#' sbird_unlumper
+#' 
+#' this does the actual calculation of ratios, determination of appropriate ratio, and allocation of undifferentiated birds to each species
+#' this works on one lumped group at a time (e.g. PEEP), which is input as zlump
+#' can then lump over multiple groups_to_split
+#' 
+#' @param zlump which species group 4 letter code to split
+#'
+#' @return
+#' @export
+#'
+#' @examples
 sbird_unlumper <- function(zlump) {
  #zlump = "PEEP"
 
-spp_group <- make_sbird_lumpies() %>% 
-  filter(long.lumpies == zlump)
+spp_group <- make_sbird_lumpies(zlump)
 
 # all unIDed birds for the lumpy group
 lumpies <- sbirds %>% 
@@ -126,36 +141,37 @@ un_lumped <- un_lumpies_ratios %>%
 
 }
 
-# add unlumped birds to possitively IDed birds
-add_allocated_sbirds <- function() {
-
-unlumped_all_slim <- sbird_unlumped_all %>%
-  filter(lumpy.count > 0) %>% 
-  dplyr::select(date, site, alpha.code, count = unlumped.count, lumpy.to.sp)
-
-all_sbirds <- sbirds %>%
-  filter(!alpha.code %in% groups_to_split) %>% 
-  dplyr::select(-North_South_Code) %>% 
-  mutate(lumpy.to.sp = NA) %>% 
-  rbind(., unlumped_all_slim) %>% 
-  arrange(site, date, alpha.code)
-# all_sbirds has a row for each species X site X date, plus extra rows for DUNL, WESA, LESA, SAND for the counts allocated to those species from PEEP and LWSA
-all_sbirds_summ <- all_sbirds %>% 
-  group_by(site, date, alpha.code) %>% 
-  summarise(allocated.count = sum(count)) %>% 
-  ungroup()
-# all_sbirds_summ has the aggregated counts, so just a single row for each species X site X date
-} 
-
 
 
 # pipe functions together ----
-# group by parent site to standardize across years
 
+
+
+# start with sbirds_with_interpolated from sbird_data_prep_2_interpolate_missing_surveys.R
+# or sbirds_date_parentsite from C:\Users\scott.jennings\Documents\Projects\shorebirds\shorebird_data_work\data_files\rds
+#sbirds_with_interpolated <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/shorebird_data_work/data_files/rds/sbirds_with_interpolated")
+
+
+sbirds <- readRDS(here("data_files/rds/sbirds_date_parentsite"))
+  
+sbirds %>% 
+  mutate(year = year(date)) %>% 
+  distinct(SITE_ABBR, year) %>% 
+  mutate(site.used = 1) %>% 
+  pivot_wider(id_cols = year, names_from = SITE_ABBR, values_from = site.used) %>% 
+  view()
+
+# not every individual site was surveyed each year
+# can aggregate up to "parent site" to standardize how lumped splitting happens across years
+# this makes it so the splitting 
 # sbirds <- sbirds_with_interpolated %>%
 sbirds <- sbirds %>% 
   sbirds_group_parentsite() 
 # summarize(sbirds, sum(count)) == summarize(sbirds_with_interpolated, sum(count))
+
+# or do splitting based on ratios calculated at the site level
+sbirds <- sbirds %>% 
+  rename("site" = SITE_ABBR)
 
 groups_to_split <- c("LWSA", "PEEP")
 
@@ -176,10 +192,29 @@ splitting_summary <- sbird_unlumped_all %>%
 
 # --
 # add_allocated_sbirds combines the counts allocated from the "species" named in groups_to_split with those in all other species from the original count data
-allocated_sbirds <- add_allocated_sbirds()
-# add back in N/S field
-allocated_sbirds <- allocated_sbirds %>% 
-  left_join(., dplyr::select(sbirds, site, North_South_Code) %>% distinct())
+#allocated_sbirds <- add_allocated_sbirds()
+
+
+unlumped_all_slim <- sbird_unlumped_all %>%
+  filter(lumpy.count > 0) %>% 
+  dplyr::select(date, site, alpha.code, count = unlumped.count, lumpy.to.sp)
+
+all_sbirds <- sbirds %>%
+  filter(!alpha.code %in% groups_to_split) %>% 
+  dplyr::select(-North_South_Code) %>% 
+  mutate(lumpy.to.sp = NA) %>% 
+  bind_rows(., unlumped_all_slim) %>% 
+  arrange(site, date, alpha.code)
+# all_sbirds has a row for each species X site X date, plus extra rows for DUNL, WESA, LESA, SAND for the counts allocated to those species from PEEP and LWSA
+allocated_sbirds <- all_sbirds %>% 
+  group_by(site, date, alpha.code) %>% 
+  summarise(allocated.count = sum(count)) %>% 
+  ungroup() %>% 
+  left_join(., dplyr::select(sbirds, site, North_South_Code) %>% distinct())# add back in N/S field
+# all_sbirds_summ has the aggregated counts, so just a single row for each species X site X date
+
+
+
 
 
 # allocated_sbirds has a single row for each species X site X date, and represents the data from birds IDed to species in the field and the birds IDed as PEEP or LWSA that have been allocated to DUNL, WESA, LESA, SAND based on the ratios of those possitively IDed species.
