@@ -5,19 +5,13 @@ library(RODBC)
 library(here)
 
 library(birdnames)
-custom_bird_list <- readRDS("C:/Users/scott.jennings/OneDrive - Audubon Canyon Ranch/Projects/my_R_general/birdnames_support/data/custom_bird_list")
+# load custom_bird_list from OneDrive if working on Scott's computer
+# custom_bird_list <- readRDS("C:/Users/scott.jennings/OneDrive - Audubon Canyon Ranch/Projects/my_R_general/birdnames_support/data/custom_bird_list")
+# load custom_bird_list from E:/ if working from the AVD
+custom_bird_list <- readRDS("E:/TestFolderSJ/helper_data/custom_bird_list")
 
 
 # define functions ----
-
-sbirds_group_parentsite <- function(sbirds) {
-  sbirds <- sbirds %>% 
-    mutate(count = ifelse(is.na(count), 0, count)) %>% 
-    group_by(date, alpha.code, North_South_Code, PARENT_SITE_ABBR) %>% 
-    summarise(psite_count = sum(count)) %>%  
-    ungroup() %>% 
-    rename(site = PARENT_SITE_ABBR, count = psite_count)
-}
 
 #' make_sbird_lumpies
 #'
@@ -152,7 +146,7 @@ un_lumped <- un_lumpies_ratios %>%
 #sbirds_with_interpolated <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/shorebird_data_work/data_files/rds/sbirds_with_interpolated")
 
 
-sbirds <- readRDS(here("data_files/rds/sbirds_date_parentsite"))
+sbirds <- readRDS(here("data/sbirds_date_parentsite"))
   
 sbirds %>% 
   mutate(year = year(date)) %>% 
@@ -161,13 +155,21 @@ sbirds %>%
   pivot_wider(id_cols = year, names_from = SITE_ABBR, values_from = site.used) %>% 
   view()
 
+
+####  OPTIONAL  ####
 # not every individual site was surveyed each year
 # can aggregate up to "parent site" to standardize how lumped splitting happens across years
 # this makes it so the splitting 
 # sbirds <- sbirds_with_interpolated %>%
 sbirds <- sbirds %>% 
-  sbirds_group_parentsite() 
+  mutate(count = ifelse(is.na(count), 0, count)) %>% 
+  group_by(date, alpha.code, North_South_Code, PARENT_SITE_ABBR) %>% 
+  summarise(psite_count = sum(count)) %>%  
+  ungroup() %>% 
+  rename(site = PARENT_SITE_ABBR, count = psite_count)
+
 # summarize(sbirds, sum(count)) == summarize(sbirds_with_interpolated, sum(count))
+####  END OPTIONAL  ####
 
 # or do splitting based on ratios calculated at the site level
 sbirds <- sbirds %>% 
@@ -178,11 +180,11 @@ groups_to_split <- c("LWSA", "PEEP")
 sbird_unlumped_all <- map_df(groups_to_split, sbird_unlumper)
 # sbird_unlumped_all shows the work of unlumping the "species" named in groups_to_split
 # warning about missing pieces is ok
-saveRDS(sbird_unlumped_all, here("data_files/rds/show_sbird_unlumping_work"))
+saveRDS(sbird_unlumped_all, here("data/show_sbird_unlumping_work"))
 
 
 # summarize numbers of split birds
-sbird_unlumped_all <- readRDS("data_files/rds/show_sbird_unlumping_work")
+# sbird_unlumped_all <- readRDS("data/show_sbird_unlumping_work")
 
 splitting_summary <- sbird_unlumped_all %>% 
   group_by(alpha.code) %>% 
@@ -211,7 +213,7 @@ allocated_sbirds <- all_sbirds %>%
   summarise(allocated.count = sum(count)) %>% 
   ungroup() %>% 
   left_join(., dplyr::select(sbirds, site, North_South_Code) %>% distinct())# add back in N/S field
-# all_sbirds_summ has the aggregated counts, so just a single row for each species X site X date
+# allocated_sbirds has the aggregated counts, so just a single row for each species X site X date
 
 
 
@@ -220,7 +222,8 @@ allocated_sbirds <- all_sbirds %>%
 # allocated_sbirds has a single row for each species X site X date, and represents the data from birds IDed to species in the field and the birds IDed as PEEP or LWSA that have been allocated to DUNL, WESA, LESA, SAND based on the ratios of those possitively IDed species.
 # the field allocated.count contains these total bird numbers (possitively ID and allocated)
 
-saveRDS(allocated_sbirds, here("data_files/rds/sbirds_peep_lwsa_split"))
+saveRDS(allocated_sbirds, here("data/sbirds_peep_lwsa_split"))
 rm(sbird_unlumped_all, sbirds
    #, sbirds_with_interpolated
    )
+rm(splitting_summary, all_sbirds, unlumped_all_slim)
