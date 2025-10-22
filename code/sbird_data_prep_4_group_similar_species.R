@@ -16,9 +16,11 @@ library(here)
 options(scipen = 999)
 
 library(birdnames)
-custom_bird_list <- readRDS("C:/Users/scott.jennings/Documents/Projects/my_R_general/birdnames_support/data/custom_bird_list")
+# load custom_bird_list from OneDrive if working on Scott's computer
+# custom_bird_list <- readRDS("C:/Users/scott.jennings/OneDrive - Audubon Canyon Ranch/Projects/my_R_general/birdnames_support/data/custom_bird_list")
+# load custom_bird_list from E:/ if working from the AVD
+custom_bird_list <- readRDS("E:/TestFolderSJ/helper_data/custom_bird_list")
 
-source(here("code/sbird_data_prep_utilities.R"))
 
 # define functions ----
 sbird_groupies <- c("YELL", 
@@ -68,18 +70,27 @@ allocated_sbirds3 <- allocated_sbirds2 %>%
 # pipe functions together ----
 # if coming from sbird_data_prep_3... don't need to reload allocated_birds
 #allocated_sbirds <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/shorebird_data_work/data_files/rds/sbirds_peep_lwsa_split") %>% 
-shorebirds_for_analysis <- allocated_sbirds %>% 
-  sbirds_assign_season() %>% # from sbird_data_prep_utilities
+shorebirds_for_analysis <- allocated_sbirds  %>% 
+  dplyr::mutate(season = case_when(month(date) >= 3 & month(date) < 6 ~ "spring",
+                                   month(date) > 7 & month(date) < 10 ~ "fall",
+                                   month(date) >= 10 | month(date) < 3 ~ "winter",
+                                   TRUE ~ NA)) %>% 
+  dplyr::mutate(study.year = ifelse(month(date) < 3, year(date) - 1, year(date)),
+                season.year = paste(season, study.year, sep = "_"))
+  
+
+shorebirds_for_analysis <- shorebirds_for_analysis %>% 
   tally_lumped_spp_counts()
 
 # check which species were in allocated_sbirds but aren't in shorebirds_for_analysis
 # this should be the constituent species in the groups listed in sbird_groupies
 anti_join(allocated_sbirds, shorebirds_for_analysis, by = c("date", "site", "alpha.code")) %>% 
+  filter(allocated.count > 0) %>% 
   group_by(alpha.code) %>% 
   summarise(n())
 
 #write.csv(allocated_sbirds4, "data_files/sbirds4analysis.csv", row.names = F)
-saveRDS(shorebirds_for_analysis, here("data_files/rds/shorebirds_for_analysis"))
+saveRDS(shorebirds_for_analysis, here("data/shorebirds_for_analysis"))
 
 
 
