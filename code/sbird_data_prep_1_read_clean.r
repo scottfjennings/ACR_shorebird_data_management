@@ -29,15 +29,9 @@ custom_bird_list <- readRDS("E:/TestFolderSJ/helper_data/custom_bird_list")
 
 source("E:/TestFolderSJ/helper_functions/ms_access_helper_functions.R")
 
-
-source(here("code/sbird_data_prep_utilities.R"))
-options(scipen = 999)
-
-
 # some dates had bad weather, but data were collected anyway, data from these dates should be excluded from interpolation calculations done in sbird_data_prep_2....r and the splitting done in sbird_data_prep_3....r
 exclude_dates <- as.Date(c("1990-01-04", "1990-02-12", "2010-01-18"))
 
-# pipe all functions together to produce clean data ----
 
 #sbird_data <- shorebird_from_access("SHOREBIRD") %>% 
 sbird_data_start <- read_table_from_access("V:/Shorebirds_data/Shorebirds.mdb", "SHOREBIRD") 
@@ -133,11 +127,12 @@ filter(check_surveys, all.sites.surveyed == FALSE)
 
 
 
-sbirds <- sbird_data %>% 
-  bird_taxa_filter(keep_taxa = c("Charadriiformes", "YELL", "LEGP", "LWSA", "PEEP", "DOSP", "PHAL"))
+sbird_data %>% 
+  bird_taxa_filter(keep_taxa = c("Charadriiformes", "YELL", "LEGP", "LWSA", "PEEP", "DOSP", "PHAL")) %>% 
+  saveRDS(here("data/sbirds_date_parentsite"))
 
 
+rm(check_surveys, sbird_data_start, sbird_data_wide, sbird_sites)
 
-saveRDS(sbirds, here("data/sbirds_date_parentsite"))
 
  
