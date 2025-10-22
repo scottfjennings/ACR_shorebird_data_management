@@ -3,7 +3,7 @@
 # lump possitively IDed birds into groups ------
 # doing this for the species that that are similar and that may not be accurately separated in the field 
 
-# input data  can be allocaded_sbirds from sbird_data_prep_2_split_lumped_species.R
+# input data  can be allocaded_sbirds from sbird_data_prep_3_split_lumped_species.R
 # or the saved RDS
 # see below for reading RDS
 
@@ -18,7 +18,7 @@ options(scipen = 999)
 library(birdnames)
 custom_bird_list <- readRDS("C:/Users/scott.jennings/Documents/Projects/my_R_general/birdnames_support/data/custom_bird_list")
 
-
+source(here("code/sbird_data_prep_utilities.R"))
 
 # define functions ----
 sbird_groupies <- c("YELL", 
@@ -69,11 +69,11 @@ allocated_sbirds3 <- allocated_sbirds2 %>%
 # if coming from sbird_data_prep_3... don't need to reload allocated_birds
 #allocated_sbirds <- readRDS("C:/Users/scott.jennings/Documents/Projects/shorebirds/shorebird_data_work/data_files/rds/sbirds_peep_lwsa_split") %>% 
 shorebirds_for_analysis <- allocated_sbirds %>% 
-  sbirds_assign_season() %>% # from sbird_data_prep_1 
+  sbirds_assign_season() %>% # from sbird_data_prep_utilities
   tally_lumped_spp_counts()
 
 # check which species were in allocated_sbirds but aren't in shorebirds_for_analysis
-# this should be the constituente species in the groups listed in sbird_groupies
+# this should be the constituent species in the groups listed in sbird_groupies
 anti_join(allocated_sbirds, shorebirds_for_analysis, by = c("date", "site", "alpha.code")) %>% 
   group_by(alpha.code) %>% 
   summarise(n())
